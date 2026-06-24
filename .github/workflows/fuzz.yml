@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up JDK
-        uses: actions/setup-java@3a4f6e1af504cf6a31855fa19851de547d446ec8 # v4.0.0
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa19851de547d446cc8 # v4.0.0
         with:
           distribution: 'temurin'
           java-version: '11'
