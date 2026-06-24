@@ -74,6 +74,7 @@ jobs:
       # 5. Execute Autofuzz Fuzzing Engine
       - name: 5. Run Autofuzz
         run: |
+          mvn dependency:copy-dependencies -DoutputDirectory=target/dependency
           ./jazzer \
             --cp=target/apis-main-3.0.0-fat.jar \
             --autofuzz=jp.co.sony.csl.dcoes.apis.main.util.Starter::main \
