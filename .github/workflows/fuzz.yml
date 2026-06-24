@@ -4,10 +4,11 @@ on:
   push:
     branches: [ "fuzz-testing" ]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ "master" ]
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   autofuzz:
@@ -15,32 +16,68 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v4.2.2
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v4.0.0
+      - name: Set up JDK 17 and Maven Cache
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
 
-      # 1. First, compile the project to generate the target .class/.jar files
-      - name: Build project
-        run: mvn clean package -DskipTests
+      - name: Install Groovy
+        run: sudo apt-get update && sudo apt-get install -y groovy
 
-      # 2. Download the standalone Jazzer binary
-      - name: Download Jazzer
+      # 1. Clone and Install apis-bom exactly like CI Build
+      - name: 1. Clone and Install apis-bom
+        working-directory: ${{ github.workspace }}
+        run: |
+          git clone https://github.com/hyphae/apis-bom.git ../apis-bom
+          mvn -B -f ../apis-bom/pom.xml clean install -DskipTests=true -Dmaven.test.failure.ignore=true
+          
+          echo "Installing apis-bom as version 3.0.0..."
+          cd ../apis-bom
+          mvn install:install-file -Dfile=pom.xml -DgroupId=jp.co.sony.csl.dcoes.apis -DartifactId=apis-bom -Dversion=3.0.0 -Dpackaging=pom || (echo "ERROR: Failed to install apis-bom:3.0.0" && exit 1)
+          
+          echo "Verifying installation..."
+          if [ ! -f ~/.m2/repository/jp/co/sony/csl/dcoes/apis/apis-bom/3.0.0/apis-bom-3.0.0.pom ]; then
+            echo "ERROR: apis-bom:3.0.0 not found in local repository!"
+            exit 1
+          fi
+          echo "✓ apis-bom:3.0.0 successfully installed"
+          
+          # Crucial step: Clear Maven metadata cache to force it to look locally
+          rm -rf ~/.m2/repository/jp/co/sony/csl/dcoes/apis/apis-bom/3.0.0/_remote.repositories 2>/dev/null || true
+          rm -rf ~/.m2/repository/jp/co/sony/csl/dcoes/apis/apis-bom/maven-metadata-local.xml 2>/dev/null || true
+
+      # 2. Clone and Install apis-common exactly like CI Build
+      - name: 2. Clone and Install apis-common
+        working-directory: ${{ github.workspace }}
+        run: |
+          git clone https://github.com/hyphae/apis-common.git ../apis-common
+          mvn -B -f ../apis-common/pom.xml clean install -DskipTests=true -Dmaven.test.failure.ignore=true
+
+      # 3. Build apis-main using identical stable CI flags
+      - name: 3. Build apis-main
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Building apis-main..."
+          mvn -B -U clean package -DskipTests
+
+      # 4. Download the standalone Jazzer binary
+      - name: 4. Download Jazzer
         run: |
           wget https://github.com/CodeIntelligenceTesting/jazzer/releases/download/v0.22.1/jazzer-linux.tar.gz
           tar -zxvf jazzer-linux.tar.gz
 
-      # 3. Run Autofuzz on your specific target class and method
-      - name: Run Autofuzz
+      # 5. Execute Autofuzz Fuzzing Engine
+      - name: 5. Run Autofuzz
         run: |
           ./jazzer \
-            --cp=target/*.jar \
-            --target_class=com.yourpackage.YourInputClass \
-            --target_method=yourInputHandlerMethod \
-            --autofuzz=com.yourpackage.YourInputClass::yourInputHandlerMethod \
+            --cp=target/apis-main-3.0.0-fat.jar \
+            --target_class=jp.co.sony.csl.dcoes.apis.main.util.Starter \
+            --target_method=main \
+            --autofuzz=jp.co.sony.csl.dcoes.apis.main.util.Starter::main \
             --keep_going=1 \
             -timeout=60
