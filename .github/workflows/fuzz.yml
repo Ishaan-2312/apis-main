@@ -76,8 +76,6 @@ jobs:
         run: |
           ./jazzer \
             --cp=target/apis-main-3.0.0-fat.jar \
-            --target_class=jp.co.sony.csl.dcoes.apis.main.util.Starter \
-            --target_method=main \
             --autofuzz=jp.co.sony.csl.dcoes.apis.main.util.Starter::main \
             --keep_going=1 \
             -timeout=60
