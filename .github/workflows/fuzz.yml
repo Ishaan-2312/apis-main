@@ -1,0 +1,46 @@
+name: Automated Autofuzz Testing
+
+on:
+  push:
+    branches: [ "fuzz-testing" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  autofuzz:
+    name: Run Jazzer Autofuzz
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up JDK
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa19851de547d446ec8 # v4.0.0
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      # 1. First, compile the project to generate the target .class/.jar files
+      - name: Build project
+        run: mvn clean package -DskipTests
+
+      # 2. Download the standalone Jazzer binary
+      - name: Download Jazzer
+        run: |
+          wget https://github.com/CodeIntelligenceTesting/jazzer/releases/download/v0.22.1/jazzer-linux.tar.gz
+          tar -zxvf jazzer-linux.tar.gz
+
+      # 3. Run Autofuzz on your specific target class and method
+      - name: Run Autofuzz
+        run: |
+          ./jazzer \
+            --cp=target/*.jar \
+            --target_class=com.yourpackage.YourInputClass \
+            --target_method=yourInputHandlerMethod \
+            --autofuzz=com.yourpackage.YourInputClass::yourInputHandlerMethod \
+            --keep_going=1 \
+            -timeout=60
