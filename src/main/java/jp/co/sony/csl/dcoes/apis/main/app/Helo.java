@@ -1,9 +1,6 @@
 package jp.co.sony.csl.dcoes.apis.main.app;
 
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.vertx.core.*;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import jp.co.sony.csl.dcoes.apis.common.Error;
@@ -51,7 +48,8 @@ public class Helo extends AbstractVerticle {
 	 * @param startFuture {@inheritDoc}
 	 * @throws Exception {@inheritDoc}
 	 */
-	@Override public void start(Future<Void> startFuture) throws Exception {
+	@Override
+	public void start(Future<Void> startFuture) throws Exception {
 		// Check for the existence of a unit with the same ID at startup
 		// 起動時に同一 ID を持つユニットの存在を確認する
 		checkUniqueness_(resCheckUniqueness -> {

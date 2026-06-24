@@ -2,6 +2,7 @@ package jp.co.sony.csl.dcoes.apis.main.app;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+//import io.vertx.core.Promise;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import jp.co.sony.csl.dcoes.apis.main.app.controller.Controller;
@@ -64,7 +65,8 @@ public class Apis extends AbstractVerticle {
 	 * @param startFuture {@inheritDoc}
 	 * @throws Exception {@inheritDoc}
 	 */
-	@Override public void start(Future<Void> startFuture) throws Exception {
+	@Override
+	public void start(Future<Void> startFuture) throws Exception {
 		vertx.deployVerticle(new Helo(), resHelo -> {
 			if (resHelo.succeeded()) {
 				vertx.deployVerticle(new HwConfigKeeping(), resHwConfigKeeping -> {
